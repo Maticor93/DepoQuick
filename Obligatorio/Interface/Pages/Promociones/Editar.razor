@@ -1,0 +1,93 @@
+@page "/promociones/{id:int}/editar"
+@using Dtos
+@using Controladores
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+
+
+<div class="container">
+    <div class="row mb-4">
+        <h1 class="col-10 text-lg-center">Editar Promocion</h1>
+        <div class="col-auto">
+            <a href="/promociones/lista" class="btn btn-secondary btn-sm px-3 mt-2">Volver</a>
+        </div>
+    </div>
+    <form class="mx-4" @onsubmit="EditarPromocion">
+        <div class="row">
+            <div class="col-3 mt-4 ">
+                <label for="etiqueta" class="form-label">Etiqueta</label>
+                <input type="text" class="form-control" id="etiqueta" @bind="_etiqueta" required>
+            </div>
+            <div class="col-1 mt-4 mx-5  ">
+                <label for="descuento" class="form-label">Descuento</label>
+                <input type="number" class="form-control" id="descuento" min="5" max="75"  @bind="_descuento" required>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-4 mt-4 ">
+                <label for="validoDesde" class="form-label">Válido Desde</label>
+                <input type="date" class="form-control" id="validoDesde"  @bind="_desde" required>
+            </div>
+            <div class="col-4 mt-4 ">
+                <label for="validoHasta" class="form-label">Válido Hasta</label>
+                <input type="date" class="form-control" id="validoHasta" @bind="_hasta" required>
+            </div>
+        </div>
+        @if (_mensajeError != "")
+        { 
+            <div class="col-5 alert alert-danger" role="alert"> @_mensajeError</div>
+        }
+        
+        <div class="row mt-4">
+            <button class=" col-7 btn btn-primary" type="submit" >Editar</button>
+        </div>
+    </form>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private PromocionConIdDto _promocionDto;
+    private String _etiqueta;
+    private int _descuento;
+    private DateTime _desde;
+    private DateTime _hasta;
+    
+    private String _mensajeError = "";
+    
+    protected override void OnInitialized()
+    {
+        if(SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+        if( !fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual)) navManager.NavigateTo("/home");
+        
+        _promocionDto = fachada.ObtenerDatosPromocion(Id);
+        AsignarValoresAElementos();
+    }
+
+    private void EditarPromocion()
+    {
+        _mensajeError = "";
+
+        try
+        {
+            
+            PromocionConIdDto promocionActualizadaDto = new PromocionConIdDto(Id, _etiqueta, _descuento, _desde, _hasta);
+            fachada.ModificarPromocion(promocionActualizadaDto);
+            navManager.NavigateTo("/promociones/lista");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Se a producido una excepción: {e.Message}");
+            _mensajeError = e.Message;
+        }
+    }
+
+    private void AsignarValoresAElementos()
+    {
+        _etiqueta = _promocionDto.Etiqueta;
+        _descuento = _promocionDto.Descuento;
+        _desde = _promocionDto.Desde;
+        _hasta = _promocionDto.Hasta;
+    }
+}

@@ -1,0 +1,124 @@
+﻿@using Controladores
+@inject NavigationManager navManager
+@inject Fachada fachada
+@inject SesionLogica SesionLogica
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">DepoQuick</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1">
+            <NavLink class="nav-link" href="/home" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><path fill="white" d="M10 20v-6h4v6h5v-8h3L12 3L2 12h3v8z"/></svg>
+                <p class="my-0 mx-2">Pagina principal</p>
+
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@if (SesionLogica.EmailUsuarioActual != null && fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual))
+{
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1">
+            <NavLink class="nav-link" href="/promociones/lista" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="white" d="M12.79 21L3 11.21v2c0 .53.21 1.04.59 1.41l7.79 7.79c.78.78 2.05.78 2.83 0l6.21-6.21c.78-.78.78-2.05 0-2.83z"/><path fill="white" d="M11.38 17.41c.78.78 2.05.78 2.83 0l6.21-6.21c.78-.78.78-2.05 0-2.83L12.63.58A2.04 2.04 0 0 0 11.21 0H5C3.9 0 3 .9 3 2v6.21c0 .53.21 1.04.59 1.41zM7.25 3a1.25 1.25 0 1 1 0 2.5a1.25 1.25 0 0 1 0-2.5"/></svg>
+                <p class="my-0 mx-2">Promociones</p>
+            </NavLink>
+        </div>
+    </nav>
+</div>
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1">
+            <NavLink class="nav-link" href="/depositos/lista" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="white" d="M22 21V7L12 3L2 7v14h5v-9h10v9zm-11-2H9v2h2zm2-3h-2v2h2zm2 3h-2v2h2z"/></svg>
+                <p class="my-0 mx-2">Depósitos</p>
+            </NavLink>
+        </div>
+    </nav>
+</div>
+}
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1">
+            <NavLink class="nav-link" href="/reservas/lista" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" width="22" height="22"><path fill="white" d="M896 512v128H512V512zM512 896V768h384v128zm0 256v-128h256v128zM384 512v128H256V512zm0 256v128H256V768zm-128 384v-128h128v128zM128 128v1792h640v128H0V0h1115l549 549v219h-128V640h-512V128zm1024 91v293h293zm640 805h256v1024H896V1024h256V896h128v128h384V896h128zm128 896v-512h-896v512zm0-640v-128h-896v128z"/></svg>
+                <p class="my-0 mx-2">Reservas</p>
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@if (SesionLogica.EmailUsuarioActual != null && fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual))
+{
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1">
+            <NavLink class="nav-link" href="/reservas/gestion" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24"><g fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="m34 10l8 8m0-8l-8 8m10 12l-7 8l-4-4"/><path fill="white" d="M26 10H4v8h22zm0 20H4v8h22z"/></g></svg>
+                <p class="my-0 mx-2">Gestión de Reservas</p>
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1">
+            <NavLink class="nav-link" href="/generar-reporte" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="26" height="26"><path fill="white" d="M10 18h8v2h-8zm0-5h12v2H10zm0 10h5v2h-5z"/><path fill="white" d="M25 5h-3V4a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v1H7a2 2 0 0 0-2 2v21a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2M12 4h8v4h-8Zm13 24H7V7h3v3h12V7h3Z"/></svg>
+                <p class="my-0 mx-2">Generar Reporte</p>
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1">
+            <NavLink class="nav-link" href="/registrar-usuario" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"><g fill="none"><path d="M24 0v24H0V0zM12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427c-.002-.01-.009-.017-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093c.012.004.023 0 .029-.008l.004-.014l-.034-.614c-.003-.012-.01-.02-.02-.022m-.715.002a.023.023 0 0 0-.027.006l-.006.014l-.034.614c0 .012.007.02.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="white" d="M16 14a5 5 0 0 1 5 5v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a5 5 0 0 1 5-5zm4-6a1 1 0 0 1 1 1v1h1a1 1 0 1 1 0 2h-1v1a1 1 0 1 1-2 0v-1h-1a1 1 0 1 1 0-2h1V9a1 1 0 0 1 1-1m-8-6a5 5 0 1 1 0 10a5 5 0 0 1 0-10"/></g></svg>
+                <p class="my-0 mx-2">Registrar Usuario</p>
+            </NavLink>
+        </div>
+    </nav>
+</div>
+}
+
+<div class="@NavMenuCssClass  d-md-none d-lg-none d-xl-none" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3 py-1" @onclick="CerrarSesion">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="white" d="m17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5M4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4z"/></svg>
+                <p class="my-0 mx-1">Cerrar Sesión</p>
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+private bool collapseNavMenu = true;
+private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+private void ToggleNavMenu()
+{
+collapseNavMenu = !collapseNavMenu;
+}
+private void CerrarSesion()
+{
+SesionLogica.CerrarSesion();
+navManager.NavigateTo("/");
+}
+
+
+}

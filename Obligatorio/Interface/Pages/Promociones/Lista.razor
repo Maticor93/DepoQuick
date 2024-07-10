@@ -1,0 +1,90 @@
+@page "/promociones/lista"
+@using Controladores
+@using Dtos
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+ 
+<div class="container">
+    <div class="row">
+        <h1 class="col-10 text-lg-center">Lista Promociones </h1>
+        
+        <div class="col-auto">
+            <a href="/promociones/alta" class="btn btn-success btn-sm px-3 mt-2">Crear +</a>
+        </div>
+    </div>
+    @if (_mensajeError != "")
+        { 
+                <div class="col-6 alert alert-danger text-lg-center" role="alert"> @_mensajeError</div>
+        }
+    
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Etiqueta</th>
+            <th>Descuento</th>
+            <th>Validez</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+           @foreach (var promocionDto in _promocionesDto)
+           {
+               <tr>
+
+                   <td>@promocionDto.Id</td>
+                   <td>@promocionDto.Etiqueta</td>
+                   <td>@promocionDto.Descuento%</td>
+                   <td>@MostrarFechaConFormato(promocionDto.Desde) - @MostrarFechaConFormato(promocionDto.Hasta)</td>
+                   <td>
+                       <a class="btn btn-primary btn-sm" href="/promociones/@promocionDto.Id/editar">Editar</a>
+                       <button class="btn btn-danger btn-sm" @onclick="(() => BorrarPromocion(promocionDto.Id))">Eliminar</button>
+                   </td>
+                   
+               </tr>
+           }
+        </tbody>
+    </table>
+                   
+</div>
+
+
+@code {
+    private List<PromocionConIdDto> _promocionesDto = new List<PromocionConIdDto>();
+
+    private String _mensajeError = "";
+    protected override void OnInitialized()
+    {
+        if(SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+        if( !fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual)) navManager.NavigateTo("/home");
+        RecargarLasPromocionesOrdenadas();
+    }
+
+    private void BorrarPromocion(int id)
+    {
+        try
+        {
+            
+            fachada.BajaPromocion(id);
+            RecargarLasPromocionesOrdenadas();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Se a producido una excepción: {e.Message}");
+            _mensajeError = e.Message;
+        }
+    }
+
+    private void RecargarLasPromocionesOrdenadas()
+    {
+        
+        _promocionesDto = fachada.ListarPromociones();
+        _promocionesDto = _promocionesDto.OrderByDescending(p => p.Id).ToList();
+    }
+    
+    private String MostrarFechaConFormato(DateTime fecha)
+    {
+            return fecha.ToString("dd/MM/yyyy");
+    }
+}

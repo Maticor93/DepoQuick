@@ -1,0 +1,55 @@
+@page "/generar-reporte"
+@using Controladores
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+
+    <div class="container">
+        <div class="row mb-4">
+            <h1 class="col-10 text-lg-center">Generar reporte de reservas</h1>
+        </div>
+        <div class="row mt-5">
+            <div class="col mt-4">
+                <button class=" col-7 btn btn-primary" type="button" @onclick="(() => GenerarReporteDeTipo(_formatoTXT))">Reporte formato txt</button>
+            </div>
+            <div class="col mt-4">
+                <button class=" col-7 btn btn-primary" type="button" @onclick="(() => GenerarReporteDeTipo(_formatoCSV))" >Reporte formato csv</button>
+            </div>
+            
+        </div>
+         @if (_mensajeError != "")
+            
+        {
+            <div class="alert alert-danger" role="alert"> @_mensajeError</div> 
+        }
+    </div>
+
+
+@code {
+
+    private String pathCarpetaReportes = "../../Reportes"; 
+    private String _formatoTXT = "TXT";
+    private String _formatoCSV = "CSV";
+    
+    private String _mensajeError = "";
+    
+    protected override void OnInitialized()
+    {
+        if(SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+        if(!fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual)) navManager.NavigateTo("/home");
+    }
+
+    private void GenerarReporteDeTipo(String tipo)
+    {
+        _mensajeError = "";
+        try
+        {
+            fachada.GenerarReporte(tipo,pathCarpetaReportes);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Se a producido una excepción: {e.Message}");
+            _mensajeError = e.Message;
+        }
+    }
+}

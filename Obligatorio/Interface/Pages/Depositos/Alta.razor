@@ -1,0 +1,321 @@
+@page "/depositos/alta"
+@using Controladores
+@using Dtos
+@using Dtos.DepositoDtos
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+
+
+
+    <div class="container">
+        <div class="row mb-4">
+            <h1 class="col-10 text-lg-center">Alta Deposito</h1>
+            <div class="col-auto">
+                <a href="/depositos/lista" class="btn btn-secondary btn-sm px-3 mt-2">Volver</a>
+            </div>
+        </div>
+        <form class="mx-4 row" @onsubmit="AltaDeposito">
+            <div class="input-group row mt-4 ">
+                <div class="col-6">
+                    <label for="nombre" class="form-label">Nombre</label>
+                    <input type="text" class="form-control" id="nombre" @bind="_nombre" required>
+                </div>
+            </div>
+            <div class="input-group col mt-4 ">
+                <div class="row">
+                    <label for="area" class="col input-group-text">Área</label>
+                    <select class="col from-select" id="area" @bind="_area">
+                        <option value="A" selected>A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                    </select>
+                </div>
+                <div class="row mx-5">
+                    <label for="tamanio" class="col-5 input-group-text">Tamaño</label>
+                    <select class="col from-select " id="tamanio" @bind="_tamanio">
+                        <option value="Grande" selected>Grande</option>
+                        <option value="Mediano">Mediano</option>
+                        <option value="Pequeño">Pequeño</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-check row mt-4 px-3">
+                <input class="col form-check-input mx-0" type="checkbox" @bind="_climatizacion" id="checkboxClimatizacion">
+                <label for="climatizacion" class="col-10 form-check-label mx-0" id="checkboxClimatizacion">Climatizacion</label>
+            </div>
+            <div class="row mt-4">
+                <button class=" col-1 btn btn-secondary p-0" type="button" @onclick="AgregarRangoFechaALista">Agregar</button>
+                <div class="col">
+                    <div class="row">
+                        <div class="mt-4 col">
+                            <label for="validoDesde" class="form-label">Válido Desde</label>
+                            <input type="date" class="form-control " id="validoDesde" @bind="_desde" required>
+                        </div>
+                        <div class=" mt-4 col">
+                            <label for="validoHasta" class="form-label">Válido Hasta</label>
+                            <input type="date" class="form-control " id="validoHasta" @bind="_hasta" required>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <table class="table-success mt-5">
+                <thead>
+                <tr>
+                    <th>Disponibilidad</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var rangoFechasDto in _rangosFechas)
+                {
+                    <tr>
+                        <td>@MostrarFechaConFormato(rangoFechasDto.FechaInicio) - @MostrarFechaConFormato(rangoFechasDto.FechaFin)</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" type="button" @onclick="(() => QuitarRangoFechaDeLaLista(rangoFechasDto))">Quitar</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+
+            @if (_mensajeError != "")
+            {
+            <div class=" mt-2 d-flex justify-content-center align-items-center">
+                <div class="col-6 alert alert-danger" role="alert"> @_mensajeError</div>
+            </div>
+            }
+            
+            <div class="input-group row mt-4">
+                <div class="row">
+                    <label for="promociones" class="row col-auto input-group-text">Promociones</label>
+                    <div class="input-group row px-0">
+                        <button class="btn col-auto btn-outline-secondary" @onclick="AgregarPromocion" type="button">Agregar</button>
+                        <select class="col-9 form-select-lg" id="promociones" @bind="_idDePormocionSeleccionada">
+
+                            @foreach (var promocionDto in _todasLasPromociones)
+                            {
+                                <option value="@promocionDto.Id">@MostrarPromocion(promocionDto)</option>
+                            }
+                        </select>
+
+                    </div>
+                </div>
+            </div>
+            
+
+
+            <table class="table-success mt-5">
+                <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Etiqueta</th>
+                    <th>Descuento</th>
+                    <th>Validez</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var promocionDto in ObtenerDatosDePromocionesSeleccionadas(_idsPromociones))
+                {
+                    <tr>
+                        <td>@promocionDto.Id</td>
+                        <td>@promocionDto.Etiqueta</td>
+                        <td>@promocionDto.Descuento%</td>
+                        <td>@MostrarFechaConFormato(promocionDto.Desde) - @MostrarFechaConFormato(promocionDto.Hasta)</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" type="button" @onclick="(() => QuitarPromocion(promocionDto.Id))">Quitar</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            
+            
+
+            <div class="row mt-4">
+                <button class=" col-7 btn btn-primary" type="submit">Alta Deposito</button>
+            </div>
+        </form>
+    </div>
+
+@code {
+    private List<PromocionConIdDto> _todasLasPromociones;
+    private String _nombre;
+    private String _area = "A"; //por defecto valor A
+    private String _tamanio = "Grande"; //por defecto valor Grande
+    private bool _climatizacion;
+    private List<int> _idsPromociones = new List<int>();
+    private List<RangoFechasDto> _rangosFechas = new List<RangoFechasDto>();
+    private RangoFechasDto _rangoFechaParaAgregar;
+    private DateTime _desde = DateTime.Today;
+    private DateTime _hasta = DateTime.Today.AddDays(1);
+
+    private int _idDePormocionSeleccionada = -1;
+
+    private String _mensajeError = "";
+    
+    protected override void OnInitialized()
+    {
+        
+        if(fachada.ObtenerDatosPublicosDeUsuarioActual(SesionLogica.EmailUsuarioActual) ==  null || !fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual)) navManager.NavigateTo("/");
+        _todasLasPromociones = fachada.ListarPromociones();
+        
+    }
+
+    private void AltaDeposito()
+    {
+        _mensajeError = "";
+        try
+        {
+            if (_rangosFechas.Count() == 0)
+            {
+                _mensajeError = "El deposito al menos debe tener un rango de fechas de disponibilidad";
+                return;
+            }
+            var datosDeposito = new DepositoAltaDto(_nombre, _area, _tamanio, _climatizacion,_idsPromociones, _rangosFechas);
+            fachada.AgregarDeposito(datosDeposito);
+            navManager.NavigateTo("/depositos/lista");
+        }
+        catch (Exception e)
+        { 
+            Console.WriteLine($"Se a producido una excepción: {e.Message}");
+            _mensajeError = e.Message;
+        }
+    }
+
+    private void QuitarPromocion(int id)
+    {
+        _idsPromociones.RemoveAll(i=>i == id);
+    }
+
+    private void AgregarPromocion()
+    {
+        _mensajeError = "";
+        if (fachada.ObtenerDatosPromocion(_idDePormocionSeleccionada) == null) _mensajeError = "No hay promocion asociada a ese id";
+        
+        if (_idsPromociones.Contains(_idDePormocionSeleccionada))
+        {
+            _mensajeError = $"La promoción de id #{_idDePormocionSeleccionada} ya está agregada, solo puede asignarse una sola vez";
+            return;
+        }
+        if (_idDePormocionSeleccionada != -1)
+        {
+            _idsPromociones.Add(_idDePormocionSeleccionada);
+        }
+        
+    }
+    private String MostrarFechaConFormato(DateTime fecha)
+    {
+        return fecha.ToString("dd/MM/yyyy");
+    }
+
+    private String MostrarPromocion( PromocionConIdDto promocionConIdDto)
+    {
+        return $" Id: #{promocionConIdDto.Id}, Etiqueta: {promocionConIdDto.Etiqueta}, Descuento: {promocionConIdDto.Descuento}%, Desde: {MostrarFechaConFormato(promocionConIdDto.Desde)}, Hasta: {MostrarFechaConFormato(promocionConIdDto.Hasta)}";
+    }
+
+    private List<PromocionConIdDto> ObtenerDatosDePromocionesSeleccionadas(List<int> idsPromociones)
+    {
+        List<PromocionConIdDto> datosPromocionesSelecionadas = new List<PromocionConIdDto>();
+        foreach (var id in idsPromociones)
+            datosPromocionesSelecionadas.Add(fachada.ObtenerDatosPromocion(id));
+        
+
+        return datosPromocionesSelecionadas;
+    }
+
+    private void AgregarRangoFechaALista()
+    {
+        try
+        {
+            _mensajeError = "";
+            RangoFechasDto rangoFechasDto = new RangoFechasDto(_desde, _hasta);
+            if (rangoFechasDto.FechaFin <= rangoFechasDto.FechaInicio)
+            {
+                _mensajeError = "Rango de fechas inválido, la fecha de fin debe ser posterior a la fecha de inicio";
+                return;
+            }
+
+            _rangosFechas = AcoplarRangosFecha(rangoFechasDto, _rangosFechas);
+            _rangosFechas = ConcatenarRangosFecha(_rangosFechas);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Se a producido una excepción: {e.Message}");
+            _mensajeError = e.Message;
+        }
+    }
+
+    private void QuitarRangoFechaDeLaLista(RangoFechasDto rangoFechasDto)
+    {
+        _rangosFechas.Remove(rangoFechasDto);
+    }
+    
+    public  List<RangoFechasDto> AcoplarRangosFecha(RangoFechasDto rangoFechasDto, List<RangoFechasDto> rangosFechas)
+    {
+        foreach (var rangoFecha in rangosFechas)
+        {
+            if (rangoFecha.FechaInicio <= rangoFechasDto.FechaInicio && rangoFecha.FechaFin >= rangoFechasDto.FechaFin)
+            {
+                _mensajeError= ("Rango de fechas ya agregado, no pueden haber rangos repetidos");
+                return rangosFechas;
+            }
+
+            if (rangoFechasDto.FechaInicio == rangoFecha.FechaInicio && rangoFechasDto.FechaFin > rangoFecha.FechaFin)
+            {
+                rangosFechas.Remove(rangoFecha);
+                break;
+            }
+
+            if (rangoFechasDto.FechaInicio < rangoFecha.FechaInicio && rangoFechasDto.FechaFin == rangoFecha.FechaFin)
+            {
+                rangosFechas.Remove(rangoFecha);
+                break;
+            }
+
+            if (rangoFechasDto.FechaFin >= rangoFecha.FechaInicio && rangoFechasDto.FechaFin <= rangoFecha.FechaFin)
+            {
+                rangosFechas.Remove(rangoFecha);
+                var rangoConjunto = new RangoFechasDto(rangoFechasDto.FechaInicio, rangoFecha.FechaFin);
+                rangosFechas.Add(rangoConjunto);
+                return rangosFechas;
+            }
+
+            if (rangoFecha.FechaFin >= rangoFechasDto.FechaInicio && rangoFecha.FechaFin <= rangoFechasDto.FechaFin)
+            {
+                rangosFechas.Remove(rangoFecha);
+                var rangoConjunto = new RangoFechasDto(rangoFecha.FechaInicio, rangoFechasDto.FechaFin);
+                rangosFechas.Add(rangoConjunto);
+                return rangosFechas;
+            }
+        }
+
+        rangosFechas.Add(rangoFechasDto);
+        return rangosFechas;
+    }
+    
+    public List<RangoFechasDto> ConcatenarRangosFecha(List<RangoFechasDto> rangosFechas)
+    {
+        rangosFechas = rangosFechas.OrderBy(r => r.FechaInicio).ToList();
+        for (int i = 0; i < rangosFechas.Count - 1; i++)
+        {
+            if (rangosFechas[i].FechaFin.AddDays(1) == rangosFechas[i + 1].FechaInicio || rangosFechas[i].FechaFin == rangosFechas[i + 1].FechaInicio)
+            {
+                var rangoConjunto = new RangoFechasDto(rangosFechas[i].FechaInicio, rangosFechas[i + 1].FechaFin);
+                rangosFechas.Remove(rangosFechas[i]);
+                rangosFechas.Remove(rangosFechas[i]);
+                rangosFechas.Add(rangoConjunto);
+                rangosFechas = rangosFechas.OrderBy(r => r.FechaInicio).ToList();
+                i--;
+            }
+        }
+
+        return rangosFechas;
+    }
+}

@@ -1,0 +1,205 @@
+@page "/reservas/lista"
+@using Controladores
+@using Dtos.ReservaDtos
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+
+<div class="container">
+    <div class="row">
+        <h1 class="col-10 text-lg-center">Mis Reservas</h1>
+        <div class="col-auto">
+            <a href="/reservas/alta" class="btn btn-success btn-sm px-3 mt-2">Hacer reserva +</a>
+        </div>
+    </div>
+    <table class="col-12 mt-5">
+        <thead>
+        <tr>
+            <th>Precio</th>
+            <th>Fecha Inicio - Fecha Fin</th>
+            <th>Información depósito</th>
+            <th>Solicitud</th>
+            <th>Estado</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var reserva in _reservasDeUsuario)
+        {
+            <tr>
+                <td>$@reserva.Precio</td>
+                <td>@MostrarFechaConFormato(reserva.RangoFechasDto.FechaInicio) - @MostrarFechaConFormato(reserva.RangoFechasDto.FechaFin)</td>
+                @if (reserva.DepositoDto != null)
+                {
+                <td>Nombre: @reserva.DepositoDto.Nombre, Área: @reserva.DepositoDto.Area, Tamaño: @reserva.DepositoDto.Tamanio, Climatización: @(reserva.DepositoDto.Climatizacion ? "Tiene" : "No Tiene")</td>
+                    
+                }
+                else
+                {
+                    <td>Deposito eliminado</td>
+                }
+                <td>
+                    @if (reserva.ConfAdmin == "Aprobada")
+                    {
+                        <button class="btn btn-outline-success btn-sm" type="button" disabled="">Aprobada</button>
+                    }
+                    else if (reserva.ConfAdmin == "Rechazada")
+                    {
+                        <button class="btn btn-outline-danger btn-sm" type="button" disabled="">Rechazada</button>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="(() => MostrarMotivo(reserva.Id))">Ver motivo</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-warning btn-sm" type="button" disabled="">Pendiente</button>
+                    }
+                </td>
+                <td>
+                    @if (reserva.Pago == "Capturado")
+                    {
+                        <button class="btn btn-success btn-sm" type="button" disabled="">Capturado</button>
+                    }
+                    else if (reserva.Pago == "Cancelado")
+                    {
+                        <button class="btn btn-danger btn-sm" type="button" disabled="">Cancelado</button>
+                    }
+                    else if (reserva.Pago == "Reservado")
+                    {
+                        <button class="btn btn-secondary btn-sm" type="button" disabled="">Reservado</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-danger btn-sm" type="button" @onclick="(() => MostrarVentanaPagar(reserva))">Pagar</button>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (_visibilidadVentanaPagar)
+{
+    <div class="modal fade show" tabindex="-1" role="dialog" id="ModalPago" style="display: block; background-color: rgba(10,10,10,0.8);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Realizar pago</h5>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro que quiere realizar el pago por $@_reservaAPagar.Precio?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @onclick="SalirDeVentanaSinPagar">Volver</button>
+                    <button type="button" class="btn btn-danger" @onclick="RealizarPago">Pagar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_visibilidadVentanaComentario)
+{
+    <div class="modal fade show" tabindex="-1" role="dialog" id="ModalComentario" style="display: block; background-color: rgba(10,10,10,0.8);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Motivo De Rechazo</h5>
+                </div>
+                <div class="modal-body">
+                    <p>@_mensajeMotivo</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @onclick="SalirDeVentanaComentario">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ReservaConIdDto> _reservasDeUsuario = new List<ReservaConIdDto>();
+
+    private bool _visibilidadVentanaPagar;
+    private ReservaConIdDto _reservaAPagar;
+    private bool _visibilidadVentanaComentario;
+    private string _mensajeMotivo = "";
+    private string _mensajeError;
+    
+    protected override void OnInitialized()
+    { 
+        if (SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+        string clienteEmail = SesionLogica.EmailUsuarioActual;
+        CargarReservas(clienteEmail);
+    }
+
+    private void CargarReservas(string clienteEmail)
+    {
+        _reservasDeUsuario = fachada.ObtenerDatosDeReservasDeUsuario(clienteEmail);
+        OrdenarReservasPorEstado();
+        StateHasChanged();
+    }
+
+    private void OrdenarReservasPorEstado()
+    {
+        _reservasDeUsuario = _reservasDeUsuario.OrderBy(r => r.ConfAdmin).ToList();
+    }
+
+    private void MostrarMotivo(int idReserva)
+    {
+        _mensajeMotivo = fachada.ObtenerComentarioReserva(idReserva);
+        _visibilidadVentanaComentario = true;
+        StateHasChanged();
+    }
+
+    private void MostrarVentanaPagar(ReservaConIdDto reserva)
+    {
+        try
+        {
+            _reservaAPagar = reserva;
+            _visibilidadVentanaPagar = true;
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _mensajeError = e.Message;
+        }
+    }
+
+    private void RealizarPago()
+    {
+        try
+        {
+            fachada.PagarReserva(_reservaAPagar.Id);
+            _reservaAPagar = null;
+            _visibilidadVentanaPagar = false;  
+            
+            CargarReservas(SesionLogica.EmailUsuarioActual);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e); 
+            throw new Exception("Error al realizar el pago");
+        }
+    }
+
+    
+
+    private void SalirDeVentanaSinPagar()
+    {
+        _reservaAPagar = null;
+        _visibilidadVentanaPagar = false;
+        StateHasChanged();
+    }
+
+    private void SalirDeVentanaComentario()
+    {
+        _mensajeMotivo = "";
+        _visibilidadVentanaComentario = false;
+        StateHasChanged();
+    }
+
+    private string MostrarFechaConFormato(DateTime fecha)
+    {
+        return $"{fecha.Day}/{fecha.Month}/{fecha.Year}";
+    }
+}

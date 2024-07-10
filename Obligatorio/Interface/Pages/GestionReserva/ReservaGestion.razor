@@ -1,0 +1,321 @@
+@page "/reservas/gestion"
+@using Controladores
+@using LogicaDeNegocio
+@using Dominio
+@using Dominio.Enums
+@using Dominio.ExcepcionesDominio
+@using Dtos.DepositoDtos
+@using Dtos.ReservaDtos
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+
+<div class="container">
+    <div class="row">
+        <h1 class="col-10 text-lg-center">Gestión de Reservas</h1>
+    </div>
+    
+    <div class="row mt-5">
+        <h5 class="col-10 text-lg-start">Seleccione un depósito para ver sus reservas</h5>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="input-group row mt-4">
+            <div class="row">
+                <label for="depositos" class="row col-auto input-group-text">Depósitos</label>
+                <div class="input-group row px-0">
+                    <button class="btn col-auto btn-outline-secondary" @onclick="SeleccionDeposito" type="button">Seleccionar</button>
+                    <select class="col-7 form-select-lg" id="depositos" @bind="_idDeposito"> 
+                        @foreach (var deposito in _depositos)
+                        {
+                            <option value="@deposito.Id">@MostrarDeposito(deposito)</option>
+                        }
+                    </select> 
+                </div>
+            </div>
+        </div>
+        <table class="table-success mt-5">
+            <thead>
+            <tr>
+                <th>Precio</th>
+                <th>Fecha Inicio - Fecha Fin</th>
+                <th>Depósito</th>
+                <th>Cliente</th>
+                <th>Estado Solicitud</th>
+                <th>Pago</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var reserva in _reservasDeDeposito)
+            {
+                <tr>
+                    <td>$@reserva.Precio</td>
+                    <td>@(reserva.RangoFechasDto.FechaInicio.Day)/@(reserva.RangoFechasDto.FechaInicio.Month)/@(reserva.RangoFechasDto.FechaInicio.Year) - @(reserva.RangoFechasDto.FechaFin.Day)/@(reserva.RangoFechasDto.FechaFin.Month)/@(reserva.RangoFechasDto.FechaFin.Year)</td>
+                    <td>Nombre: @reserva.DepositoDto.Nombre, Área: @reserva.DepositoDto.Area, Tamaño: @reserva.DepositoDto.Tamanio</td>
+                    <td>@reserva.EmailUsuario</td>
+                    <td>
+                        @if (reserva.ConfAdmin == "Aprobada")
+                        {
+                            <button class="btn btn-success btn-sm" type="button" disabled="">Aprobada</button>
+                        }
+                        else if(reserva.ConfAdmin == "Rechazada")
+                        {
+                            <button class="btn btn-danger btn-sm" type="button" disabled="">Rechazada</button>
+                            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="(() => MostrarMotivo(reserva.Id))">Ver Motivo</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-primary btn-sm" type="button" @onclick="(() => AprobarReserva(reserva.Id))">Aprobar</button>
+                            <button class="btn btn-danger btn-sm" type="button" @onclick="(() => DesplegarPopUpParaRechazar(reserva.Id))">Rechazar</button>
+                        }
+                    </td>
+                    <td>
+                        @if(reserva.Pago == "Cancelado")
+                        {
+                            <button class="btn btn-outline-danger btn-sm" type="button" disabled="">Cancelado</button> 
+                        }
+                        else if (reserva.Pago == "Capturado")
+                        {
+                            <button class="btn btn-outline-success btn-sm" type="button" disabled="">Capturado</button>
+                        }else if (reserva.Pago == "Reservado")
+                        {
+                            <button class="btn btn-warning btn-sm" type="button" disabled="">Reservado</button>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (_visibilidadVentanaComentario)
+{
+<div class="modal fade show" tabindex="-1" role="dialog" id="ModalComentario" style="display: block; background-color: rgba(10,10,10,0.8);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Motivo De Rechazo</h5>
+            </div>
+            <div class="modal-body">
+                <p>Detalles de reserva:</p>
+                <p>Id: #@_idReservaARechazar, Precio: @fachada.ObtenerPrecioReserva(_reservaARechazar.IdDeposito, 
+                _reservaARechazar.RangoFechasDto.FechaInicio, _reservaARechazar.RangoFechasDto.FechaFin)
+                </p>
+                <p>FechaInicio: @MostrarFechaConFormato(_reservaARechazar.RangoFechasDto.FechaInicio) FechaFin: 
+                    @MostrarFechaConFormato(_reservaARechazar.RangoFechasDto.FechaFin)
+                </p>
+                <p>Cliente: @_reservaARechazar.EmailUsuario</p>
+                <p> Deposito Id: @_reservaARechazar.IdDeposito </p>
+                <div class="form-floating">
+                    <textarea class="form-control" placeholder="Leave a comment here" id="floatingTextarea2" @bind="_comentario" style="height: 100px"></textarea>
+                    <label for="floatingTextarea2">Escriba el motivo por el que rechaza la reserva</label>
+                </div>
+            </div>
+            @if (_mensajeDeErrorAlComentar != "")
+            {
+            <div class="alert alert-danger" role="alert"> @_mensajeDeErrorAlComentar</div>
+            }
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" @onclick="RechazarReservaConComentario">Confirmar</button>
+                <button type="button" class="btn btn-primary" @onclick="CancelarRechazo">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@if (_visibilidadVentanaMotivo)
+{
+<div class="modal fade show" tabindex="-1" role="dialog" id="ModalComentario" style="display: block; background-color: rgba(10,10,10,0.8);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Motivo De Rechazo</h5>
+            </div>
+            <div class="modal-body">
+                <p>@(_motivoDeRechazoDeReserva)</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick="SalirDeVentanaMotivo">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@code {
+    private List<DepositoConIdDto> _depositos = new List<DepositoConIdDto>();
+    private List<ReservaConIdDto> _reservasDeDeposito = new List<ReservaConIdDto>();
+    private DepositoConIdDto _deposito;
+    private ReservaAltaDto _reservaARechazar;
+    private int _idReservaARechazar;
+    private int _idDeposito = -1;
+    private string _comentario = "";
+
+    private bool _visibilidadVentanaComentario;
+    private bool _visibilidadVentanaMotivo;
+    private string _motivoDeRechazoDeReserva;
+    private string _mensajeDeErrorAlComentar = "";
+
+    protected override void OnInitialized()
+{
+    try
+    {
+        if (SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+        if (!fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual)) navManager.NavigateTo("/home");
+        _depositos = fachada.ListarDepositos();
+    }
+    catch (Exception e)
+    {
+        _mensajeDeErrorAlComentar = $"Error al cargar los datos: {e.Message}";
+    }
+}
+
+private void SeleccionDeposito()
+{
+    try
+    {
+        CargarReservasDelDeposito();
+    }
+    catch (Exception e)
+    {
+        _mensajeDeErrorAlComentar = $"Error al seleccionar el depósito: {e.Message}";
+    }
+}
+
+private void CargarReservasDelDeposito()
+{
+    try
+    {
+        if (ExisteDepositoConId(_idDeposito))
+        {
+            _reservasDeDeposito = fachada.ObtenerReservasDeDepositoSiSePagaron(_idDeposito);
+            OrdenarReservasPorEstado();
+            StateHasChanged();
+        }
+    }
+    catch (Exception e)
+    {
+        _mensajeDeErrorAlComentar = $"Error al cargar las reservas del depósito: {e.Message}";
+    }
+}
+
+private void OrdenarReservasPorEstado()
+{
+    try
+    {
+        var listaOrdenadaSegunEstado = _reservasDeDeposito.OrderBy(r => r.ConfAdmin).ToList();
+        _reservasDeDeposito = listaOrdenadaSegunEstado;
+    }
+    catch (Exception e)
+    {
+        _mensajeDeErrorAlComentar = $"Error al ordenar las reservas: {e.Message}";
+    }
+}
+
+private bool ExisteDepositoConId(int idDeposito)
+{
+    try
+    {
+        return fachada.ObtenerDeposito(idDeposito) != null;
+    }
+    catch (Exception e)
+    {
+        _mensajeDeErrorAlComentar = $"Error al verificar la existencia del depósito: {e.Message}";
+        return false;
+    }
+}
+
+private void AprobarReserva(int idReserva)
+{
+    try
+    {
+        fachada.CapturarPago(idReserva);
+        CargarReservasDelDeposito();
+    }
+    catch (Exception e)
+    {
+        _mensajeDeErrorAlComentar = $"Error al aprobar la reserva: {e.Message}";
+    }
+}
+
+private void DesplegarPopUpParaRechazar(int idReserva)
+{
+    try
+    {
+        _reservaARechazar = fachada.ObtenerReserva(idReserva);
+        
+        _idReservaARechazar = idReserva;
+        _mensajeDeErrorAlComentar = "";
+        _visibilidadVentanaComentario = true;
+        StateHasChanged();
+    }
+    catch (Exception e)
+    {
+        _mensajeDeErrorAlComentar = $"Error al desplegar el popup para rechazar la reserva: {e.Message}";
+    }
+}
+
+private void RechazarReservaConComentario()
+{
+    try
+    {
+        fachada.RechazarReserva(_idReservaARechazar, _comentario);
+        _mensajeDeErrorAlComentar = "";
+        _visibilidadVentanaComentario = false;
+        CargarReservasDelDeposito();
+        StateHasChanged();
+    }
+    catch (ReservaExcepcion e)
+    {
+        _mensajeDeErrorAlComentar = e.Message;
+    }
+    catch (Exception e)
+    {
+        fachada.RechazarReserva(_idReservaARechazar, _motivoDeRechazoDeReserva);
+        _mensajeDeErrorAlComentar = $"Error al rechazar la reserva: {e.Message}";
+    }
+}
+
+private void CancelarRechazo()
+{
+    _idReservaARechazar = -1;
+    _mensajeDeErrorAlComentar = "";
+    _visibilidadVentanaComentario = false;
+    StateHasChanged();
+}
+
+private void MostrarMotivo(int idReserva)
+{
+    try
+    {
+        _motivoDeRechazoDeReserva = fachada.ObtenerComentarioReserva(idReserva);
+        _visibilidadVentanaMotivo = true;
+        StateHasChanged();
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine(e);
+        _mensajeDeErrorAlComentar = e.Message;
+    }
+}
+
+private void SalirDeVentanaMotivo()
+{
+    _motivoDeRechazoDeReserva = "";
+    _visibilidadVentanaMotivo = false;
+    StateHasChanged();
+}
+
+private string MostrarFechaConFormato(DateTime fecha)
+{
+    return $"{fecha.Day}/{fecha.Month}/{fecha.Year}";
+}
+
+private string MostrarDeposito(DepositoConIdDto deposito)
+{
+    return $"Nombre: {deposito.Nombre}, Área: {deposito.Area}, Tamaño: {deposito.Tamanio}";
+}
+
+}

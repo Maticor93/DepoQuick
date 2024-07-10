@@ -1,0 +1,127 @@
+@page "/registro"
+@using Controladores
+@using Dtos.UsuarioDtos
+@layout RegistroLayout
+@inject NavigationManager navManager
+@inject Fachada fachada
+@inject SesionLogica SesionLogica
+<PageTitle>Registro</PageTitle>
+
+
+<div class="container-fluid d-flex align-items-center justify-content-center" style="height: 20vh;">
+    <h1>DepoQuick</h1>
+</div>
+<div class="container-fluid d-flex align-items-center justify-content-center" style="height: 50vh;">
+    <div class="container-sm mt-5">
+        <div class="card mx-auto" style="max-width: 400px;">
+            <div class="card-body">
+                <h3 class="card-title text-center">Registro</h3>
+                <form class="mt-4"  @onsubmit="GuardarCambios">
+
+         
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label" for="nombre">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" @bind="_nombre" required>
+                        </div>
+                        <div class="col">
+                            <label class="form-label" for="apellido">Apellido</label>
+                            <input type="text" class="form-control" id="apellido" @bind="_apellido" required>
+                     
+                        </div>
+                    </div>
+                    
+                    <div class="row-md-4">
+                        <label class="form-label" for="correo">Correo</label>
+                        <input type="text" class="form-control" id="correo" @bind="_email" required>
+                    </div>
+                  
+                    <div class="row-md-4">
+                        <label class="from-label" for="password">Contraseña</label>
+                        <input type="password" class="form-control" id="password" @bind="_password" required>
+                    </div>
+                    <div class="row-md-4">
+                        <label class="from-label" for="passwordVerificacion">Verificar contraseña</label>
+                        <input type="password" class="form-control" id="passwordVerificacion" @bind="_passwordVerificacion" required>
+                    </div>
+                    @if (!String.IsNullOrEmpty(_mensajeError)){
+                        <div class="row alert alert-danger m-0 ">
+                            <p class="m-0">
+                                @_mensajeError
+                            </p>
+                        </div>
+                    }
+                    <div class="row m-0 mt-4 pt-0 px-3 align-content-center">
+                        <button class="btn btn-primary" type="submit" >Registrarse</button>
+                    </div>
+
+                    <style>
+                        .link-underline-primary:hover {
+                            cursor: pointer;
+                        }
+                    </style>
+                    
+                    <p class="mt-2">Si tiene cuenta debe <a class="link-underline-primary" @onclick="IrAInicioSesion">iniciar sesión</a></p>
+
+            
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private String _email;
+    private String _nombre;
+    private String _apellido;
+    private String _password;
+    private String _passwordVerificacion;
+    private String _mensajeError;
+
+     protected override void OnInitialized()
+     {
+         if(SesionLogica.EmailUsuarioActual != null) navManager.NavigateTo("/home");
+         _mensajeError = "";
+     }
+    
+     private void GuardarCambios()
+     {
+         _mensajeError = "";
+         if (!ValidarPasswords(_password, _passwordVerificacion))
+         {
+             _mensajeError = "Las contraseñas deben coincidir";
+             return;
+         }
+         try
+         {
+             _nombre = _nombre.Trim();
+             _apellido = _apellido.Trim();
+             if (_nombre.Trim() == "" || _apellido.Trim() == "")
+             {
+                 _mensajeError = "Los campos nombre y apellido no pueden ser vacios";
+                 return;
+             }
+             
+             var nombreCompleto = $"{_nombre} {_apellido}";
+             var usuarioRegistroDto = new UsuarioRegistroDto(nombreCompleto, _email, _password);
+             fachada.RegistrarUsuario(usuarioRegistroDto);
+             SesionLogica.IniciarSesion(usuarioRegistroDto.Email);
+             navManager.NavigateTo("/home");
+         }
+         catch(Exception e)
+         { 
+             Console.WriteLine($"Se a producido una excepción: {e.Message}");
+             _mensajeError = e.Message;
+         }
+     }
+     private void IrAInicioSesion()
+     {
+         navManager.NavigateTo("/");
+     }
+
+     private bool ValidarPasswords(String password, String passwordVerificacion)
+     {
+         return password == passwordVerificacion;
+     }
+}

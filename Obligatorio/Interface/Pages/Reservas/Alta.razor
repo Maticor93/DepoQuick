@@ -1,0 +1,264 @@
+    @page "/reservas/alta"
+    @using Controladores
+    @using Dtos
+    @using Dtos.DepositoDtos
+    @using Dtos.ReservaDtos
+    @inject SesionLogica SesionLogica
+    @inject NavigationManager navManager
+    @inject Fachada fachada
+
+    <div class="container">
+        <div class="row">
+            <h1 class="col-10 text-lg-center">Hacer Reserva</h1>
+            <div class="col-auto">
+                <a href="/reservas/lista" class="btn btn-secondary btn-sm px-3 mt-2">Volver</a>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <h5 class="col-10 text-lg-start"> Seleccione un rango de fechas para ver los depósitos disponibles.</h5>
+        </div>
+
+        <div class="row mt-4 d-flex align-items-end">
+            <div class="col-4">
+                <label for="fecha-inicial" class="form-label">Fecha Inicial</label>
+                <input type="date" class="form-control" id="fecha-inicial" value="@_fechaInicial.ToString("yyyy-MM-dd")" @onchange="FechaInicialOnChange" required>
+            </div>
+            <div class="col-4">
+                <label for="fecha-final" class="form-label">Fecha Final</label>
+                <input type="date" class="form-control" id="fecha-final" value="@_fechaFinal.ToString("yyyy-MM-dd")" @onchange="FechaFinalOnChange" required>
+            </div>
+            <div class="col-4 ">
+                <label ></label>
+                <button class="btn btn-primary " @onclick="ActualizarDepositos">Buscar</button>
+            </div>
+        </div>
+        
+        @if (_mensajeErrorBusqueda != "")
+        {
+            <div class="col-5 alert alert-danger" role="alert"> @_mensajeErrorBusqueda</div>
+        }
+
+
+
+        <div class="row mt-5">
+
+            <table class="table-success mt-5">
+                <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Área</th>
+                    <th>Tamaño</th>
+                    <th>Climatización</th>
+                    <th>Promociones</th>
+                    <th>Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @if (_depositos.Count > 0) {
+                @foreach (var deposito in _depositos)
+                {
+                <tr>
+                    <td style="padding: 5px">@deposito.Nombre</td>
+                    <td style="padding: 5px">@deposito.Area</td>
+                    <td style="padding: 5px">@deposito.Tamanio</td>
+                    <td style="padding: 5px">
+                        @if (deposito.Climatizacion)
+                        {
+                        <button class="btn btn-outline-success btn-sm" type="button" disabled="">Tiene</button>
+                        }
+                        else
+                        {
+                        <button class="btn btn-outline-danger btn-sm" type="button" disabled="">No Tiene</button>
+                        }
+                    </td>
+                    <td style="padding: 5px">
+                            @if (deposito.PromocionesDtos.Count > 0)
+                            {
+                                <button class="btn btn-outline-success btn-sm" type="button" disabled="">Activas</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-outline-danger btn-sm" type="button" disabled="">No Disponibles</button>
+                            }
+                    </td>
+                    <td style="padding: 5px">
+                        <button class="btn btn-dark btn-sm" @onclick="(() => PrevisualizarReserva(deposito.Id))">Reservar</button>
+                    </td>
+                </tr>
+                }
+                }
+                else {
+                <tr>
+                    <td style="padding: 5px">—</td>
+                    <td style="padding: 5px">—</td>
+                    <td style="padding: 5px">—</td>
+                    <td style="padding: 5px">—</td>
+                    <td style="padding: 5px">—</td>
+                    <td style="padding: 5px">—</td>
+                </tr>
+                }
+                </tbody>
+            </table>
+
+
+
+        </div>
+    </div>
+
+    @if (_visibilidadVentanaReserva)
+    {
+        <div class="modal fade show" tabindex="-1" role="dialog" id="ModalReserva" style="display: block; background-color: rgba(10,10,10,0.8);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Depósito seleccionado</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>Fecha Inicio: @MostrarFechaConFormato(_fechaInicial)</p>
+                        <p>Fecha Fin: @MostrarFechaConFormato(_fechaFinal)</p>
+                        <p>Precio: $@fachada.ObtenerPrecioReserva(_idDeposito, _fechaInicial, _fechaFinal)</p>
+                        <p>@MostrarDeposito(@fachada.ObtenerDeposito(_idDeposito))</p>
+                        @if (_promocionesDisponibles.Count > 0)
+                        {
+                            <p>Promociones activas: </p>
+                            <ul>
+                                @foreach (var promocion in _promocionesDisponibles)
+                                {
+                                    <li class="list-group-item">Descuento: @promocion.Descuento</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p>No hay promociones disponibles.</p>
+                        }
+                    </div>
+                    @if (_mensajeErrorReserva != "")
+                    {
+                        <div class="alert alert-danger" role="alert"> @_mensajeErrorReserva</div>
+                    }
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" @onclick="EfectuarReserva">Confirmar Reserva</button>
+                        <button type="button" class="btn btn-danger" @onclick="CancelarReserva">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+
+    @code {
+        private int _idDeposito;
+        private String _cliente;
+        private DateTime _fechaInicial = DateTime.Today;
+        private DateTime _fechaFinal = DateTime.Today.AddDays(1);
+        private List<DepositoConIdDto> _depositos = new List<DepositoConIdDto>();
+        private ReservaAltaDto _reserva;
+        private bool _visibilidadVentanaReserva;
+        private String _mensajeErrorBusqueda = "";
+        private String _mensajeErrorReserva = "";
+        private List<PromocionSinIdDto> _promocionesDisponibles = new List<PromocionSinIdDto>();
+
+
+        protected override void OnInitialized()
+        {
+            if (SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+            _cliente = SesionLogica.EmailUsuarioActual;
+            _idDeposito = -1;
+        }
+
+        private void PrevisualizarReserva(int idDeposito)
+        {
+            RangoFechasDto rango = new RangoFechasDto(_fechaInicial, _fechaFinal);
+            _reserva = new ReservaAltaDto(rango, _idDeposito, _cliente);
+            _idDeposito = idDeposito;
+            _visibilidadVentanaReserva = true;
+            
+            var depositoSeleccionado = fachada.ObtenerDeposito(_idDeposito);
+            _promocionesDisponibles = depositoSeleccionado.PromocionesDtos.Where(promocion => promocion.Desde <= DateTime.Today && DateTime.Today <= promocion.Hasta).ToList();
+
+            StateHasChanged();
+        }   
+
+        private void EfectuarReserva()
+        {
+            try
+            {
+                _mensajeErrorReserva = "";
+                _reserva = new ReservaAltaDto(new RangoFechasDto(_fechaInicial, _fechaFinal), _idDeposito, _cliente);
+                fachada.AgregarReserva(_reserva);
+                _visibilidadVentanaReserva = false;
+                StateHasChanged();
+                navManager.NavigateTo("/reservas/lista");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Se a producido una excepción: {e.Message}");
+                _mensajeErrorReserva = e.Message;
+            }
+        }
+
+        private void CancelarReserva()
+        {
+            _mensajeErrorReserva = "";
+            _visibilidadVentanaReserva = false;
+            StateHasChanged();
+        }
+
+        private void ActualizarDepositos()
+        {
+            try
+            {
+                _mensajeErrorBusqueda = "";
+                _depositos = fachada.ObtenerDatosDepositosDisponiblesEn(_fechaInicial, _fechaFinal);
+
+                if (_depositos.Count == 0)
+                {
+                    _mensajeErrorBusqueda = "No se encontraron depósitos disponibles para las fechas seleccionadas";
+                }
+                StateHasChanged();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Se a producido una excepción: {e.Message}");
+                _mensajeErrorBusqueda = e.Message;
+            }
+        }
+
+        private String MostrarDeposito(DepositoConIdDto deposito)
+        {
+            return $"Info: Nombre: {deposito.Nombre}, Área: {deposito.Area}, Tamaño: {deposito.Tamanio}, Climatización: {(deposito.Climatizacion ? "Si" : "No")}";
+        }
+        
+        private String MostrarFechaConFormato(DateTime fecha)
+        {
+            return $"{fecha.Day}/{fecha.Month}/{fecha.Year}";
+        }
+
+        private bool MostrarPromocionesSoloDeHoy(PromocionSinIdDto promocion)
+        {
+            return promocion.Desde <= DateTime.Today && DateTime.Today <= promocion.Hasta;
+        }
+
+        private void FechaInicialOnChange(ChangeEventArgs e)
+        {
+            if (DateTime.TryParse(e.Value.ToString(), out DateTime result))
+            {
+                _fechaInicial = result;
+                _depositos.Clear();
+                StateHasChanged();
+            }
+        }
+
+        private void FechaFinalOnChange(ChangeEventArgs e)
+        {
+            if (DateTime.TryParse(e.Value.ToString(), out DateTime result))
+            {
+                _fechaFinal = result;
+                _depositos.Clear();
+                StateHasChanged();
+            }
+        }
+
+    }

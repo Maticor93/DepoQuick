@@ -1,0 +1,30 @@
+﻿@page "/home"
+@using Controladores
+@layout MainLayout
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+<PageTitle>Home</PageTitle>
+
+<h2>Bienvendio a DepoQuick</h2>
+<div class="mt-3" style="margin-left: 10px">
+    <style>
+        .link-underline-primary:hover {
+            cursor: pointer;
+        }
+    </style>
+    <p>Si quiere reservar un depósito, puede ir a la pestaña reserva o hacer <a class="link-underline-primary" @onclick="NavegarAAltaReserva">click aqui</a></p>
+</div>
+
+@code {
+
+    protected override void OnInitialized()
+    { 
+        if (SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+    }
+
+    private void NavegarAAltaReserva()
+    {
+        navManager.NavigateTo("/reservas/alta");
+    }
+}

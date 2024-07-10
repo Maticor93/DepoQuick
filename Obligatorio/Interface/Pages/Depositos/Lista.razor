@@ -1,0 +1,125 @@
+@page "/depositos/lista"
+@using Controladores
+@using Dtos
+@using Dtos.DepositoDtos
+@inject SesionLogica SesionLogica
+@inject NavigationManager navManager
+@inject Fachada fachada
+
+<div class="container">
+    <div class="row">
+        <h1 class="col-10 text-lg-center">Lista Depósitos </h1>
+        <div class="col-auto">
+            <a href="/depositos/alta" class="btn btn-success btn-sm px-3 mt-2">Agregar +</a>
+        </div>
+    </div>
+    
+     @if (_mensajeError != "")
+    { 
+        <div class="col-6 alert alert-danger text-lg-center" role="alert"> @_mensajeError</div> 
+    }
+    
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Área</th>
+            <th>Tamaño</th>
+            <th>Climatización</th>
+            <th>Disponibilidad</th>
+            <th>Lista Promociones</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+           @foreach (var depositoDto in _depositosDtos)
+           {
+               <tr>
+                   <td>@depositoDto.Id</td>
+                   <td>@depositoDto.Nombre</td>
+                   <td>@depositoDto.Area</td>
+                   <td>@depositoDto.Tamanio</td>
+                   <td>
+                       @if (depositoDto.Climatizacion)
+                       {
+                           <button class="btn btn-success btn-sm" type="button" disabled="">Tiene</button>
+                       }
+                       else 
+                       {
+                           <button class="btn btn-danger btn-sm" type="button" disabled="">No Tiene</button>
+                       }
+                   
+                   </td>
+                   <td>
+                       <ul>
+                           @foreach (var disponibilidad in depositoDto.FechasDisponibilidad)
+                           {
+                               <li>@MostrarFechaConFormato(disponibilidad.FechaInicio) - @MostrarFechaConFormato(disponibilidad.FechaFin)</li>
+                           }
+                       </ul>
+                   </td>
+                   
+                   <td>
+                       <ul>
+                           @foreach (var promocion in depositoDto.PromocionesDtos)
+                           {
+                               <li>@MostrarPromocion(promocion)</li>
+                           }
+                       </ul>
+                   </td>
+                   <td>
+                       <button class="btn btn-danger btn-sm" @onclick="(() => BorrarDeposito(depositoDto.Id))">Eliminar</button>
+                   </td>
+               </tr>
+           }
+        </tbody>
+    </table>
+                   
+</div>
+
+@code {
+    private List<DepositoConIdDto> _depositosDtos = new List<DepositoConIdDto>();
+
+    private String _mensajeError = "";
+    
+    protected override void OnInitialized()
+    {
+        if(SesionLogica.EmailUsuarioActual == null) navManager.NavigateTo("/");
+        if( !fachada.UsuarioActualEsAdministrador(SesionLogica.EmailUsuarioActual)) navManager.NavigateTo("/home");
+        RecargarLosDepositosOrdenados();
+        
+    }
+
+    private void BorrarDeposito(int idDeposito)
+    {
+        try
+        {
+            fachada.BajaDeposito(idDeposito);
+            RecargarLosDepositosOrdenados();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Se a producido una excepción: {e.Message}");
+            _mensajeError = e.Message;
+        }
+    }
+
+    private void RecargarLosDepositosOrdenados()
+    {
+        _depositosDtos = fachada.ListarDepositos();
+        _depositosDtos = _depositosDtos.OrderByDescending(d => d.Id).ToList();
+    }
+    
+    private String MostrarFechaConFormato(DateTime fecha)
+    {
+        return fecha.ToString("dd/MM/yyyy");
+    }
+    
+    private String MostrarPromocion(PromocionSinIdDto promocion)
+    {
+        return $" Descuento: {promocion.Descuento}%, Validez: {MostrarFechaConFormato(promocion.Desde)} - {MostrarFechaConFormato(promocion.Hasta)}";
+    }
+    
+
+}
